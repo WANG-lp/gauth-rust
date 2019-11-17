@@ -1,24 +1,26 @@
-use std::time::SystemTime;
-use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
-use std::io::Cursor;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use ring::{digest, hmac};
-use std::fs::File;
 use std::error::Error;
-use std::path::Path;
+use std::fs::File;
+use std::io::Cursor;
+use std::time::SystemTime;
 
-struct OTOP {}
+struct OTP {}
 
-
-impl OTOP {
+impl OTP {
     fn decode_base32(secret: &str) -> Option<Vec<u8>> {
         match base32::decode(base32::Alphabet::RFC4648 { padding: true }, secret) {
             Some(decode_res) => Some(decode_res),
-            _ => None
+            _ => None,
         }
     }
     pub fn get_code(secret: &str) -> Option<String> {
-        let message = (SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() / 30) as u32;
-        let key = OTOP::decode_base32(secret)?;
+        let message = (SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            / 30) as u32;
+        let key = OTP::decode_base32(secret)?;
         let mut message_body = vec![];
 
         message_body.write_u64::<BigEndian>(message as u64).ok();
@@ -45,27 +47,37 @@ impl OTOP {
 
 fn main() {
     // Create a path to the desired file
-    let mut path = std::env::home_dir().unwrap();
+    let mut path = dirs::home_dir().unwrap();
     path.push(".config");
     path.push("gauth.csv");
-    let path = Path::new(path.to_str().unwrap());
+    let path = path.as_path();
     let display = path.display();
-    let mut file = match File::open(&path) {
+    let file = match File::open(&path) {
         // The `description` method of `io::Error` returns a string that
         // describes the error
-        Err(why) => panic!("couldn't open {}: {}", display,
-                           why.description()),
+        Err(why) => panic!("couldn't open {}: {}", display, why.description()),
         Ok(file) => file,
     };
 
-    let mut rdr = csv::ReaderBuilder::new().has_headers(false).delimiter(b':').from_reader(file);
+    let mut rdr = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .delimiter(b':')
+        .from_reader(file);
     for result in rdr.records() {
         // The iterator yields Result<StringRecord, Error>, so we check the
         // error here.
         let record = result.unwrap();
         let name = &record[0].trim();
         let secret = &record[1].trim();
-        let otop = OTOP::get_code(secret);
+        let otop = OTP::get_code(secret);
         println!("{}: {}", name, otop.unwrap());
     }
+    println!(
+        "Time left: {}s",
+        30 - (SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            % 30)
+    );
 }
