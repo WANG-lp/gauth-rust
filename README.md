@@ -1,4 +1,5 @@
-# Google Authenticator in Rust
+# Google Authenticator in Rust 
+[![Build Status](https://travis-ci.org/WANG-lp/gauth-rust.svg?branch=master)](https://travis-ci.org/WANG-lp/gauth-rust)
 
 This repo implementes a basic Google authenticator in Rust programming language.
 
