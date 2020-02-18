@@ -4,6 +4,8 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Cursor;
 use std::time::SystemTime;
+use std::env;
+use std::path::PathBuf;
 
 struct OTP {}
 
@@ -47,9 +49,13 @@ impl OTP {
 
 fn main() {
     // Create a path to the desired file
+    let args: Vec<String> = env::args().collect();
     let mut path = dirs::home_dir().unwrap();
     path.push(".config");
     path.push("gauth.csv");
+    if args.len() > 1{
+        path = PathBuf::from(&args[1]);
+    }
     let path = path.as_path();
     let display = path.display();
     let file = match File::open(&path) {
